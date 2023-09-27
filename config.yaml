@@ -1,0 +1,41 @@
+## dirs
+data_dir: "/home/pervinco/Datasets/BKAI_IGH_NeoPolyp"
+save_dir: "./runs"
+train: "train"
+valid: "valid"
+test: "test"
+weight_dir: "/home/pervinco/metapolyp-custom/runs/2023-09-27_21-08-58/weights/final_model.h5"
+
+## hyp-params
+num_classes: 3
+augment: True
+epochs: 350
+img_size: 256
+batch_size: 16
+initial_lr: 0.0001
+betas: [0.9, 0.999]
+momentum: 0.9
+decay_steps: 1000
+
+last_lr: 0.000001
+save_weights_only: True
+
+margin: 20
+alpha: 0.8
+mixup_times: 2
+
+## Loss func
+crossentropy: True
+
+## lr scheduler
+scheduler: "decay"
+max_lr: 0.0001
+min_lr: 0.000001
+pct_start: 0.8
+patience: 10
+
+## early-stop
+early_stopping_patience: 50
+
+## pred samples
+num_pred_samples: 5
