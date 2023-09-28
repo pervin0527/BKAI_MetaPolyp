@@ -94,11 +94,11 @@ def get_callbacks(monitor, mode, weight_path, log_path, _max_lr, _min_lr, _cos_a
                                                       mode=mode)
 
     reduce_lr = tf.keras.callbacks.ReduceLROnPlateau(monitor=monitor,
-                                                     factor=0.1,
-                                                     patience=10,
+                                                     factor=0.2,
+                                                     patience=50,
                                                      verbose=1,
                                                      mode=mode,
-                                                     min_lr=1e-6)
+                                                     min_lr=1e-5)
 
     checkpoint = tf.keras.callbacks.ModelCheckpoint(filepath=weight_path,
                                                     monitor=monitor,

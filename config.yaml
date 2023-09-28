@@ -4,7 +4,7 @@ save_dir: "./runs"
 train: "train"
 valid: "valid"
 test: "test"
-weight_dir: "/home/pervinco/BKAI_MetaPolyp/runs/2023-09-28_16-32-30/weights/final_model.h5"
+weight_dir: "/home/pervinco/BKAI_MetaPolyp/runs/2023-09-29_01-20-29/weights/final_model.h5"
 
 ## hyp-params
 num_classes: 3
@@ -12,27 +12,24 @@ epochs: 350
 img_size: 256
 batch_size: 16
 
-augment: True
 red_size: 3
 green_size: 9
 rng_size: 4
 
 initial_lr: 0.0001
 last_lr: 0.000001
-betas: [0.9, 0.999]
 decay_steps: 1000
 momentum: 0.9
-
 save_weights_only: True
-
-margin: 20
-alpha: 0.8
-mixup_times: 2
 
 ## lr scheduler
 max_lr: 0.0001
 min_lr: 0.000001
 patience: 10
+
+## augmentation
+augment: True
+alpha: 0.8
 
 ## pred samples
 num_pred_samples: 5
