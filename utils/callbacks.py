@@ -78,7 +78,7 @@ def plt_lr(step, schedulers):
     plt.legend()
 
 
-def get_callbacks(monitor, mode, save_path, _max_lr, _min_lr, _cos_anne_ep, save_weights_only):
+def get_callbacks(monitor, mode, weight_path, log_path, _max_lr, _min_lr, _cos_anne_ep, save_weights_only):
     global max_lr
     max_lr = _max_lr
     global min_lr
@@ -98,7 +98,7 @@ def get_callbacks(monitor, mode, save_path, _max_lr, _min_lr, _cos_anne_ep, save
                                                      mode=mode,
                                                      min_lr=1e-5)
 
-    checkpoint = tf.keras.callbacks.ModelCheckpoint(filepath=save_path,
+    checkpoint = tf.keras.callbacks.ModelCheckpoint(filepath=weight_path,
                                                     monitor=monitor,
                                                     verbose=1,
                                                     save_best_only=True,
@@ -108,7 +108,7 @@ def get_callbacks(monitor, mode, save_path, _max_lr, _min_lr, _cos_anne_ep, save
 
     lr_schedule = tf.keras.callbacks.LearningRateScheduler(cosine_annealing_with_warmup, verbose=0)
 
-    csv_logger = tf.keras.callbacks.CSVLogger('training.csv')
+    csv_logger = tf.keras.callbacks.CSVLogger(f'{log_path}/training.csv')
 
     callbacks = [checkpoint, csv_logger, reduce_lr]
     return callbacks

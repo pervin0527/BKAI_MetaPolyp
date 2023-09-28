@@ -43,7 +43,8 @@ if __name__ == "__main__":
         print(save_path)
         config["save_dir"] = save_path
         os.makedirs(f"{save_path}/weights")
-        os.makedirs(f"{save_path}/predict")
+        os.makedirs(f"{save_path}/preds")
+        os.makedirs(f"{save_path}/logs")
 
     model = build_model(img_size=config["img_size"], num_classes=3)
 
@@ -60,10 +61,11 @@ if __name__ == "__main__":
                                                           tf.TensorSpec(shape=(None, config["img_size"], config["img_size"], 3), dtype=tf.float32),
                                                           tf.TensorSpec(shape=(None, config["img_size"], config["img_size"], 3), dtype=tf.float32)))
 
-    pred_callback = SavePredictions(model, valid_dataset, save_dir=f"{save_path}/predict", num_samples=config["num_pred_samples"])
+    pred_callback = SavePredictions(model, valid_dataset, save_dir=f"{save_path}/preds", num_samples=config["num_pred_samples"])
     callbacks = get_callbacks(monitor='val_loss',
                               mode = 'min',
-                              save_path=f"{save_path}/weights/ckpt", 
+                              weight_path=f"{save_path}/weights/ckpt",
+                              log_path=f"{save_path}/logs", 
                               _max_lr=config["max_lr"],
                               _min_lr=config["min_lr"],
                               _cos_anne_ep = 1000, 
