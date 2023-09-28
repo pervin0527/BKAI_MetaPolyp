@@ -6,7 +6,7 @@ import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
 from data.batch_preprocess import load_img_mask, normalize
-from utils import decode_mask
+from utils.utils import decode_mask
 
 class SavePredictions(tf.keras.callbacks.Callback):
     def __init__(self, model, valid_dataset, save_dir, num_samples=5):

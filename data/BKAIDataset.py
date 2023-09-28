@@ -20,7 +20,18 @@ class BKAIDataset():
 
         self.train_transform = A.Compose([A.Rotate(limit=90, border_mode=0, p=0.6),
                                           A.HorizontalFlip(p=0.7),
-                                          A.VerticalFlip(p=0.7)])   
+                                          A.VerticalFlip(p=0.7),
+                                          
+                                          A.ShiftScaleRotate(shift_limit_x=(-0.06, 0.06), shift_limit_y=(-0.06, 0.06), 
+                                                             scale_limit=(-0.25, 0.25), 
+                                                             rotate_limit=(-90, 90), 
+                                                             interpolation=0, border_mode=0, 
+                                                             value=(0, 0, 0), mask_value=None, rotate_method='largest_box',
+                                                             p=0.5),
+                                          A.GridDistortion(num_steps=5, distort_limit=(-0.3, 0.3), 
+                                                           interpolation=0, border_mode=0, 
+                                                           value=(0, 0, 0), mask_value=None, normalized=False,
+                                                           p=0.5)])   
         
         self.image_transform = A.Compose([A.Blur(p=0.4),
                                           A.RandomBrightnessContrast(p=0.8),

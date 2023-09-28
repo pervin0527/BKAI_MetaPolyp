@@ -1,7 +1,7 @@
 import tensorflow as tf
-import tensorflow.keras.backend as K
+import keras.backend as K
 
-from tensorflow.keras.layers import Conv2D
+from keras.layers import Conv2D
 
 def conv_bn_act(inputs, filters, kernel_size, strides=(1, 1), activation='relu', padding='same'):
     

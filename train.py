@@ -10,8 +10,8 @@ import tensorflow_addons as tfa
 from datetime import datetime
 from model.model import build_model
 from data.BKAIDataset import BKAIDataset
-from callbacks import get_callbacks, SavePredictions
-from metrics.metrics import dice_loss, dice_coefficient, ce_dice_loss, IoU
+from utils.callbacks import get_callbacks, SavePredictions
+from metrics.metrics import dice_loss, dice_coefficient, ce_dice_loss, IoU, categorical_focal_loss, jaccard_loss
 
 gpus = tf.config.experimental.list_physical_devices('GPU')
 if len(gpus) > 1:
@@ -76,6 +76,12 @@ if __name__ == "__main__":
                                                                      config["last_lr"],
                                                                      power=0.2)
     opts = tfa.optimizers.AdamW(learning_rate=config["initial_lr"], weight_decay=learning_rate_fn)
+
+    # tf.keras.utils.get_custom_objects().update({"focal": categorical_focal_loss})
+    # model.compile(optimizer=opts, loss='focal', metrics=[dice_coefficient, ce_dice_loss, IoU])
+
+    # tf.keras.utils.get_custom_objects().update({"jacard": jaccard_loss})
+    # model.compile(optimizer=opts, loss='jacard', metrics=[dice_coefficient, ce_dice_loss, IoU])
 
     tf.keras.utils.get_custom_objects().update({"dice": dice_loss})
     model.compile(optimizer=opts, loss='dice', metrics=[dice_coefficient, ce_dice_loss, IoU])
