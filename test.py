@@ -11,7 +11,7 @@ import tensorflow as tf
 
 from glob import glob
 from model.model import build_model
-from utils import decode_mask
+from utils.utils import decode_mask
 
 gpus = tf.config.experimental.list_physical_devices('GPU')
 if len(gpus) > 1:

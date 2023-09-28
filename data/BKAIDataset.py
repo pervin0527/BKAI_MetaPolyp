@@ -40,8 +40,10 @@ class BKAIDataset():
         self.split_txt = f"{self.base_dir}/{split}.txt"
         with open(self.split_txt, "r") as f:
             file_list = f.readlines()
-
-        self.file_list = [x.strip() for x in file_list]   
+        self.file_list = [x.strip() for x in file_list]
+        
+        if "train" in self.split:
+            random.shuffle(self.file_list)
 
 
     def __len__(self):
@@ -51,8 +53,9 @@ class BKAIDataset():
     def __getitem__(self, index):
         batch_images, batch_masks = [], []
         for batch_idx in range(self.batch_size):
-            bi = (index * self.batch_size + batch_idx) % len(self.file_list)
-            file_name = self.file_list[bi]
+            # bi = (index * self.batch_size + batch_idx) % len(self.file_list)
+            # file_name = self.file_list[bi]
+            file_name = self.file_list[index]
             
             image_file_path = f"{self.image_dir}/{file_name}.jpeg"
             mask_file_path = f"{self.mask_dir}/{file_name}.jpeg"
@@ -60,7 +63,7 @@ class BKAIDataset():
 
             if self.split == "train" and self.augment:
                 prob = random.random()
-                if prob <= 25:
+                if prob <= 0.25:
                     transform_image, transform_mask = train_img_mask_transform(self.train_transform, image, mask)
 
                 elif 0.25 < prob <= 0.5:
@@ -72,24 +75,20 @@ class BKAIDataset():
                         piece_mask = f"{self.mask_dir}/{file_name}.jpeg"
 
                         piece_image, piece_mask = load_img_mask(piece_image, piece_mask, self.size)
-                        transform_image, transform_mask = train_img_mask_transform(self.train_transform, piece_image, piece_mask)
-                        piecies.append([transform_image, transform_mask])
+                        t_piece_image, t_piece_mask = train_img_mask_transform(self.train_transform, piece_image, piece_mask)
+                        piecies.append([t_piece_image, t_piece_mask])
 
                     transform_image, transform_mask = mosaic_augmentation(piecies, self.size)
 
                 elif 0.5 < prob <= 0.75:
-                    if random.random() > 0.2:
-                        i = random.randint(0, len(self.file_list)-1)
-                        file_name = self.file_list[i]
-                        piece_image = f"{self.image_dir}/{file_name}.jpeg"
-                        piece_mask = f"{self.mask_dir}/{file_name}.jpeg"
-                    else:
-                        piece_image, piece_mask = np.zeros_like(mask), np.zeros_like(mask)
-
+                    i = random.randint(0, len(self.file_list)-1)
+                    file_name = self.file_list[i]
+                    piece_image = f"{self.image_dir}/{file_name}.jpeg"
+                    piece_mask = f"{self.mask_dir}/{file_name}.jpeg"
                     piece_image, piece_mask = load_img_mask(piece_image, piece_mask, self.size)
-                    transform_image, transform_mask = train_img_mask_transform(self.train_transform, piece_image, piece_mask)
 
-                    transform_image, transform_mask = cutmix_augmentation(image, mask, piece_image, piece_mask)
+                    t_piece_image, t_piece_mask = train_img_mask_transform(self.train_transform, piece_image, piece_mask)
+                    transform_image, transform_mask = cutmix_augmentation(image, mask, t_piece_image, t_piece_mask)
 
                 elif 0.75 < prob <= 1:
                     transform_image, transform_mask = spatially_exclusive_pasting(image, mask, alpha=self.alpha)

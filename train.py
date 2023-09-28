@@ -10,6 +10,7 @@ import tensorflow_addons as tfa
 from datetime import datetime
 from model.model import build_model
 from data.BKAIDataset import BKAIDataset
+from data.BalancedBKAIDataset import BalancedBKAIDataset
 from utils.callbacks import get_callbacks, SavePredictions
 from metrics.metrics import dice_loss, dice_coefficient, ce_dice_loss, IoU, categorical_focal_loss, jaccard_loss
 
@@ -48,8 +49,10 @@ if __name__ == "__main__":
 
     model = build_model(img_size=config["img_size"], num_classes=3)
 
-    train_dataset = BKAIDataset(config=config, split=config["train"])
-    valid_dataset = BKAIDataset(config=config, split=config["valid"])
+    # train_dataset = BKAIDataset(config=config, split=config["train"])
+    # valid_dataset = BKAIDataset(config=config, split=config["valid"])
+    train_dataset = BalancedBKAIDataset(config=config, split=config["train"])
+    valid_dataset = BalancedBKAIDataset(config=config, split=config["valid"])
 
     train_dataloader = tf.data.Dataset.from_generator(lambda: train_dataset, 
                                                       output_signature=(

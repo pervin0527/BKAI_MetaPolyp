@@ -1,12 +1,12 @@
 import cv2
 import math
-import copy
 import random
 import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
-from data.batch_preprocess import load_img_mask, normalize
+
 from utils.utils import decode_mask
+from data.batch_preprocess import load_img_mask, normalize
 
 class SavePredictions(tf.keras.callbacks.Callback):
     def __init__(self, model, valid_dataset, save_dir, num_samples=5):
@@ -17,11 +17,13 @@ class SavePredictions(tf.keras.callbacks.Callback):
         self.num_samples = num_samples
 
     def on_epoch_end(self, epoch, logs=None):
-        sample_indices = random.sample(range(len(self.valid_dataset.file_list)), self.num_samples)
+        pred_files = self.valid_dataset.file_list
+        random.shuffle(pred_files)
         
+        sample_indices = random.sample(range(len(pred_files)), self.num_samples)
         fig, axes = plt.subplots(self.num_samples, 2, figsize=(10, 25))
-        for i, idx in enumerate(sample_indices):  # enumerate를 사용하여 i를 추가합니다.
-            file = self.valid_dataset.file_list[idx]
+        for i, idx in enumerate(sample_indices):
+            file = pred_files[idx]
             image_path = f"{self.valid_dataset.image_dir}/{file}.jpeg"
             mask_path = f"{self.valid_dataset.mask_dir}/{file}.jpeg"
             
@@ -92,11 +94,11 @@ def get_callbacks(monitor, mode, weight_path, log_path, _max_lr, _min_lr, _cos_a
                                                       mode=mode)
 
     reduce_lr = tf.keras.callbacks.ReduceLROnPlateau(monitor=monitor,
-                                                     factor=0.2,
-                                                     patience=50,
+                                                     factor=0.1,
+                                                     patience=10,
                                                      verbose=1,
                                                      mode=mode,
-                                                     min_lr=1e-5)
+                                                     min_lr=1e-6)
 
     checkpoint = tf.keras.callbacks.ModelCheckpoint(filepath=weight_path,
                                                     monitor=monitor,

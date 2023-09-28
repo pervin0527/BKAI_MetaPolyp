@@ -1,8 +1,5 @@
-import os
 import cv2
 import yaml
-import torch
-import random
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -30,7 +27,7 @@ def save_config_to_yaml(config, save_dir):
         yaml.dump(config, file)
 
 
-def encode_mask(mask, threshold):
+def encode_mask(mask, threshold=50):
     label_transformed = np.full(mask.shape[:2], 0, dtype=np.uint8)
 
     red_mask = (mask[:, :, 0] > threshold) & (mask[:, :, 1] < 50) & (mask[:, :, 2] < 50)
