@@ -30,7 +30,7 @@ def IoU(y_true, y_pred, epsilon=1e-6):
     return iou_score
 
 
-def multi_class_focal_loss(y_true, y_pred, alpha=[0.1, 0.8, 0.1], gamma=2.0):
+def multi_class_focal_loss(y_true, y_pred, alpha=[0.25, 0.25, 0.25], gamma=2.0):
     epsilon = K.epsilon()
     y_pred = K.clip(y_pred, epsilon, 1. - epsilon)
     
@@ -44,6 +44,6 @@ def multi_class_focal_loss(y_true, y_pred, alpha=[0.1, 0.8, 0.1], gamma=2.0):
         
         focal_loss_list.append(K.sum(focal_loss_class))
 
-    focal_loss = K.mean(K.stack(focal_loss_list, axis=0))
-    
+    focal_loss = K.sum(focal_loss_list) / K.cast(K.shape(y_true)[0], 'float32')
+
     return focal_loss

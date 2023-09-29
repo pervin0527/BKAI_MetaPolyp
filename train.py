@@ -48,6 +48,8 @@ if __name__ == "__main__":
         os.makedirs(f"{save_path}/logs")
 
     model = build_model(img_size=config["img_size"], num_classes=3)
+    if config["weight_dir"] != "":
+        model.load_weights(config["weight_dir"], by_name=True, skip_mismatch=True)
 
     # train_dataset = BKAIDataset(config=config, split=config["train"])
     # valid_dataset = BKAIDataset(config=config, split=config["valid"])
@@ -55,14 +57,12 @@ if __name__ == "__main__":
     valid_dataset = BalancedBKAIDataset(config=config, split=config["valid"])
 
     train_dataloader = tf.data.Dataset.from_generator(lambda: train_dataset, 
-                                                      output_signature=(
-                                                          tf.TensorSpec(shape=(None, config["img_size"], config["img_size"], 3), dtype=tf.float32),
-                                                          tf.TensorSpec(shape=(None, config["img_size"], config["img_size"], 3), dtype=tf.float32)))
+                                                      output_signature=(tf.TensorSpec(shape=(None, config["img_size"], config["img_size"], 3), dtype=tf.float32),
+                                                                        tf.TensorSpec(shape=(None, config["img_size"], config["img_size"], 3), dtype=tf.float32)))
 
     valid_dataloader = tf.data.Dataset.from_generator(lambda: valid_dataset, 
-                                                      output_signature=(
-                                                          tf.TensorSpec(shape=(None, config["img_size"], config["img_size"], 3), dtype=tf.float32),
-                                                          tf.TensorSpec(shape=(None, config["img_size"], config["img_size"], 3), dtype=tf.float32)))
+                                                      output_signature=(tf.TensorSpec(shape=(None, config["img_size"], config["img_size"], 3), dtype=tf.float32),
+                                                                        tf.TensorSpec(shape=(None, config["img_size"], config["img_size"], 3), dtype=tf.float32)))
 
     pred_callback = SavePredictions(model, valid_dataset, save_dir=f"{save_path}/preds", num_samples=config["num_pred_samples"])
     callbacks = get_callbacks(monitor='val_loss',
@@ -82,11 +82,11 @@ if __name__ == "__main__":
                                                                      power=0.2)
     opts = tfa.optimizers.AdamW(learning_rate=config["initial_lr"], weight_decay=learning_rate_fn)
 
-    tf.keras.utils.get_custom_objects().update({"focal": multi_class_focal_loss})
-    model.compile(optimizer=opts, loss='focal', metrics=[dice_coefficient, ce_dice_loss, IoU])
+    # tf.keras.utils.get_custom_objects().update({"focal": multi_class_focal_loss})
+    # model.compile(optimizer=opts, loss='focal', metrics=[dice_coefficient, ce_dice_loss, IoU])
 
-    # tf.keras.utils.get_custom_objects().update({"dice": dice_loss})
-    # model.compile(optimizer=opts, loss='dice', metrics=[dice_coefficient, ce_dice_loss, IoU])
+    tf.keras.utils.get_custom_objects().update({"dice": dice_loss})
+    model.compile(optimizer=opts, loss='dice', metrics=[dice_coefficient, ce_dice_loss, IoU])
 
     history = model.fit(train_dataloader, 
                         epochs=config["epochs"],

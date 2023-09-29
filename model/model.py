@@ -43,7 +43,8 @@ def build_model(img_size = 256, num_classes = 1):
     x = decode(x, filters, 4)
     x = tf.keras.layers.Add()([x, upscale_feature])
     x = conv_bn_act(x, filters, 1)
-    x = Conv2D(num_classes, kernel_size=1, padding='same', activation='sigmoid')(x)
+    
+    x = Conv2D(num_classes, kernel_size=1, padding='same', activation='softmax')(x)
     model = Model(backbone.input, x)
 
     return model
