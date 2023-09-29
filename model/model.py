@@ -6,8 +6,8 @@ from keras.layers import Conv2D
 from keras_cv_attention_models import caformer
 from model.layers import decode, convformer, merge, conv_bn_act
 
-def build_model(img_size = 256, num_classes = 1):
-    backbone = caformer.CAFormerS18(input_shape=(256, 256, 3), pretrained="imagenet", num_classes = 0)
+def build_model(img_size=256, num_classes=1):
+    backbone = caformer.CAFormerS18(input_shape=(img_size, img_size, 3), pretrained="imagenet", num_classes=0)
 
     layer_names = ['stack4_block3_mlp_Dense_1', 'stack3_block9_mlp_Dense_1', 'stack2_block3_mlp_Dense_1', 'stack1_block3_mlp_Dense_1']
     layers = [backbone.get_layer(x).output for x in layer_names]
@@ -38,7 +38,7 @@ def build_model(img_size = 256, num_classes = 1):
         if (i%2 == 1):
             upscale_feature = decode(x, scale = 8, filters = layer.shape[channel_axis])
         
-    filters = x.shape[channel_axis] //2
+    filters = x.shape[channel_axis] // 2
     upscale_feature = conv_bn_act(upscale_feature, filters, 1)
     x = decode(x, filters, 4)
     x = tf.keras.layers.Add()([x, upscale_feature])

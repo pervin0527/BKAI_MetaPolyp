@@ -61,14 +61,24 @@ class BalancedBKAIDataset():
                 file_name = color_per_files[idx]
                 image_file_path = f"{self.image_dir}/{file_name}.jpeg"
                 mask_file_path = f"{self.mask_dir}/{file_name}.jpeg"
-                image, mask = load_img_mask(image_file_path, mask_file_path, self.size)
+                image, mask = load_img_mask(image_file_path, mask_file_path, size=self.size)
 
                 if self.split == "train" and self.augment:
                     prob = random.random()
-                    if prob <= 0.25:
+                    if prob <= 0.15:
                         transform_image, transform_mask = train_img_mask_transform(self.train_transform, image, mask)
 
-                    elif 0.25 < prob <= 0.5:
+                    elif 0.15 < prob <= 0.3:
+                        i = random.randint(0, len(color_per_files)-1)
+                        file_name = color_per_files[i]
+                        piece_image = f"{self.image_dir}/{file_name}.jpeg"
+                        piece_mask = f"{self.mask_dir}/{file_name}.jpeg"
+                        piece_image, piece_mask = load_img_mask(piece_image, piece_mask, self.size)
+
+                        t_piece_image, t_piece_mask = train_img_mask_transform(self.train_transform, piece_image, piece_mask)
+                        transform_image, transform_mask = cutmix_augmentation(image, mask, t_piece_image, t_piece_mask)
+
+                    elif 0.3 < prob <= 0.6:
                         piecies = [[image, mask]]
                         while len(piecies) < 4:
                             i = random.randint(0, len(color_per_files)-1)
@@ -82,17 +92,9 @@ class BalancedBKAIDataset():
 
                         transform_image, transform_mask = mosaic_augmentation(piecies, self.size)
 
-                    elif 0.5 < prob <= 0.65:
-                        i = random.randint(0, len(color_per_files)-1)
-                        file_name = color_per_files[i]
-                        piece_image = f"{self.image_dir}/{file_name}.jpeg"
-                        piece_mask = f"{self.mask_dir}/{file_name}.jpeg"
-                        piece_image, piece_mask = load_img_mask(piece_image, piece_mask, self.size)
-
-                        t_piece_image, t_piece_mask = train_img_mask_transform(self.train_transform, piece_image, piece_mask)
-                        transform_image, transform_mask = cutmix_augmentation(image, mask, t_piece_image, t_piece_mask)
-
-                    elif 0.65 < prob <= 1:
+                    elif 0.6 < prob <= 1:
+                        # t_image, t_mask = train_img_mask_transform(self.train_transform, image, mask)
+                        # transform_image, transform_mask = spatially_exclusive_pasting(t_image, t_mask, alpha=self.alpha, iterations=15)
                         transform_image, transform_mask = spatially_exclusive_pasting(image, mask, alpha=self.alpha)
                 
                     batch_image = normalize(transform_image)

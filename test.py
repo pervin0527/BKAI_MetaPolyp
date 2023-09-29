@@ -96,14 +96,14 @@ def mask2string(dir):
     return r
 
 
-def test(model, test_files, save_dir):
+def test(model, test_files, save_dir, img_size):
     for test_file in test_files:
         file_name = test_file.split('/')[-1].split('.')[0]
         image = cv2.imread(test_file)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         height, width = image.shape[:-1]
 
-        x = cv2.resize(image, (256, 256))
+        x = cv2.resize(image, (img_size, img_size))
         x = (x / 127.5) - 1
         x = np.expand_dims(x, 0)
 
@@ -135,7 +135,7 @@ if __name__ == "__main__":
     test_files = sorted(glob(f"{data_dir}/{test_set_name}/*"))
     print(len(test_files))
 
-    test(model, test_files, save_dir)
+    test(model, test_files, save_dir, img_size=config["img_size"])
 
     result = mask2string(save_dir)
     df = pd.DataFrame(columns=['Id', 'Expected'])

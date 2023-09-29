@@ -9,12 +9,13 @@ from utils.utils import decode_mask
 from data.batch_preprocess import load_img_mask, normalize
 
 class SavePredictions(tf.keras.callbacks.Callback):
-    def __init__(self, model, valid_dataset, save_dir, num_samples=5):
+    def __init__(self, model, valid_dataset, img_size, save_dir, num_samples=5):
         super(SavePredictions, self).__init__()
         self.model = model
-        self.valid_dataset = valid_dataset
         self.save_dir = save_dir
         self.num_samples = num_samples
+        self.img_size = img_size
+        self.valid_dataset = valid_dataset
 
     def on_epoch_end(self, epoch, logs=None):
         pred_files = self.valid_dataset.file_list
@@ -27,7 +28,7 @@ class SavePredictions(tf.keras.callbacks.Callback):
             image_path = f"{self.valid_dataset.image_dir}/{file}.jpeg"
             mask_path = f"{self.valid_dataset.mask_dir}/{file}.jpeg"
             
-            image, mask = load_img_mask(image_path, mask_path)
+            image, mask = load_img_mask(image_path, mask_path, size=self.img_size)
             height, width, channel = image.shape
             x = normalize(image)
             x = np.expand_dims(x, 0)

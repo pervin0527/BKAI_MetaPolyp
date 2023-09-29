@@ -10,9 +10,10 @@ import tensorflow_addons as tfa
 from datetime import datetime
 from model.model import build_model
 from data.BKAIDataset import BKAIDataset
+from utils.utils import save_config_to_yaml
 from data.BalancedBKAIDataset import BalancedBKAIDataset
 from utils.callbacks import get_callbacks, SavePredictions
-from metrics.metrics import dice_loss, dice_coefficient, ce_dice_loss, IoU, multi_class_focal_loss
+from metrics.metrics import dice_loss, dice_coefficient, ce_dice_loss, IoU
 
 gpus = tf.config.experimental.list_physical_devices('GPU')
 if len(gpus) > 1:
@@ -36,20 +37,14 @@ if __name__ == "__main__":
     with open("config.yaml", "r") as f:
         config = yaml.safe_load(f)
 
-    save_dir = config["save_dir"]
-    current_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-    save_path = f"{save_dir}/{current_time}"
-
-    if not os.path.isdir(save_path):
-        print(save_path)
-        config["save_dir"] = save_path
-        os.makedirs(f"{save_path}/weights")
-        os.makedirs(f"{save_path}/preds")
-        os.makedirs(f"{save_path}/logs")
-
     model = build_model(img_size=config["img_size"], num_classes=3)
+    # model.summary()
     if config["weight_dir"] != "":
         model.load_weights(config["weight_dir"], by_name=True, skip_mismatch=True)
+
+        for layer in model.layers:
+            if 'stack' in layer.name:
+                layer.trainable = False
 
     # train_dataset = BKAIDataset(config=config, split=config["train"])
     # valid_dataset = BKAIDataset(config=config, split=config["valid"])
@@ -64,7 +59,20 @@ if __name__ == "__main__":
                                                       output_signature=(tf.TensorSpec(shape=(None, config["img_size"], config["img_size"], 3), dtype=tf.float32),
                                                                         tf.TensorSpec(shape=(None, config["img_size"], config["img_size"], 3), dtype=tf.float32)))
 
-    pred_callback = SavePredictions(model, valid_dataset, save_dir=f"{save_path}/preds", num_samples=config["num_pred_samples"])
+    save_dir = config["save_dir"]
+    current_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    save_path = f"{save_dir}/{current_time}"
+
+    if not os.path.isdir(save_path):
+        print(save_path)
+        config["save_dir"] = save_path
+        os.makedirs(f"{save_path}/weights")
+        os.makedirs(f"{save_path}/preds")
+        os.makedirs(f"{save_path}/logs")
+
+    save_config_to_yaml(config, save_path)
+
+    pred_callback = SavePredictions(model, valid_dataset, img_size=config["img_size"], save_dir=f"{save_path}/preds", num_samples=config["num_pred_samples"])
     callbacks = get_callbacks(monitor='val_loss',
                               mode = 'min',
                               weight_path=f"{save_path}/weights/ckpt",
@@ -73,17 +81,21 @@ if __name__ == "__main__":
                               _min_lr=config["min_lr"],
                               _cos_anne_ep = 1000, 
                               save_weights_only=config["save_weights_only"])
+    callbacks.pop(-1)
     callbacks.append(pred_callback)
-    
 
     learning_rate_fn = tf.keras.optimizers.schedules.PolynomialDecay(config["initial_lr"],
                                                                      config["decay_steps"],
                                                                      config["last_lr"],
                                                                      power=0.2)
-    opts = tfa.optimizers.AdamW(learning_rate=config["initial_lr"], weight_decay=learning_rate_fn)
 
-    # tf.keras.utils.get_custom_objects().update({"focal": multi_class_focal_loss})
-    # model.compile(optimizer=opts, loss='focal', metrics=[dice_coefficient, ce_dice_loss, IoU])
+    # learning_rate_fn = reduce_lr = tf.keras.optimizers.schedules.CosineDecayRestarts(initial_learning_rate=config["max_lr"],
+    #                                                                                  first_decay_steps=100 * (len(train_dataset) // config["batch_size"]),
+    #                                                                                  t_mul=1,
+    #                                                                                  m_mul=1,
+    #                                                                                  alpha=config["min_lr"])
+
+    opts = tfa.optimizers.AdamW(learning_rate=config["initial_lr"], weight_decay=learning_rate_fn)
 
     tf.keras.utils.get_custom_objects().update({"dice": dice_loss})
     model.compile(optimizer=opts, loss='dice', metrics=[dice_coefficient, ce_dice_loss, IoU])

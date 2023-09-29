@@ -28,22 +28,3 @@ def IoU(y_true, y_pred, epsilon=1e-6):
     iou_score = (intersection + epsilon) / (union + epsilon)
 
     return iou_score
-
-
-def multi_class_focal_loss(y_true, y_pred, alpha=[0.25, 0.25, 0.25], gamma=2.0):
-    epsilon = K.epsilon()
-    y_pred = K.clip(y_pred, epsilon, 1. - epsilon)
-    
-    focal_loss_list = []
-    for class_idx in range(y_pred.shape[-1]):
-        y_true_class = y_true[..., class_idx]
-        y_pred_class = y_pred[..., class_idx]
-        
-        alpha_t = y_true_class * alpha[class_idx] + (1 - y_true_class) * (1 - alpha[class_idx])
-        focal_loss_class = - alpha_t * K.pow(1 - y_pred_class, gamma) * y_true_class * K.log(y_pred_class)
-        
-        focal_loss_list.append(K.sum(focal_loss_class))
-
-    focal_loss = K.sum(focal_loss_list) / K.cast(K.shape(y_true)[0], 'float32')
-
-    return focal_loss
