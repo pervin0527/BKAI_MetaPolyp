@@ -10,12 +10,13 @@ import tensorflow_addons as tfa
 import segmentation_models as sm
 
 from datetime import datetime
-from model.model import build_model
 from data.BKAIDataset import BKAIDataset
-from utils.utils import save_config_to_yaml
 from data.BalancedBKAIDataset import BalancedBKAIDataset
-from utils.callbacks import get_callbacks, SavePredictions
-from metrics.metrics import dice_loss, dice_coefficient, ce_dice_loss, IoU, focal_loss
+
+from model.model import build_model
+from utils.callbacks import get_callbacks
+from utils.utils import save_config_to_yaml
+from metrics.metrics import dice_loss, dice_coefficient, ce_dice_loss, IoU
 
 gpus = tf.config.experimental.list_physical_devices('GPU')
 if len(gpus) > 1:
@@ -60,6 +61,11 @@ if __name__ == "__main__":
     valid_dataloader = tf.data.Dataset.from_generator(lambda: valid_dataset, 
                                                       output_signature=(tf.TensorSpec(shape=(None, config["img_size"], config["img_size"], 3), dtype=tf.float32),
                                                                         tf.TensorSpec(shape=(None, config["img_size"], config["img_size"], 3), dtype=tf.float32)))
+    
+    train_steps_per_epoch = len(train_dataset) // config["batch_size"]
+    valid_steps_per_epoch = len(valid_dataset) // config["batch_size"]
+    total_steps = train_steps_per_epoch * config["epochs"]
+    warmup_steps = total_steps // 2
 
     save_dir = config["save_dir"]
     current_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
@@ -74,38 +80,39 @@ if __name__ == "__main__":
 
     save_config_to_yaml(config, save_path)
 
-    pred_callback = SavePredictions(model, valid_dataset, img_size=config["img_size"], save_dir=f"{save_path}/preds", num_samples=config["num_pred_samples"])
-    callbacks = get_callbacks(monitor='val_loss',
-                              mode = 'min',
-                              weight_path=f"{save_path}/weights/ckpt",
-                              log_path=f"{save_path}/logs", 
-                              _max_lr=config["max_lr"],
-                              _min_lr=config["min_lr"],
-                              _cos_anne_ep = 1000, 
-                              save_weights_only=config["save_weights_only"])
-    callbacks.append(pred_callback)
-
-    learning_rate_fn = tf.keras.optimizers.schedules.PolynomialDecay(config["initial_lr"],
-                                                                     config["decay_steps"],
-                                                                     config["last_lr"],
+    learning_rate_fn = tf.keras.optimizers.schedules.PolynomialDecay(initial_learning_rate=config["initial_lr"],
+                                                                     decay_steps=config["decay_steps"],
+                                                                     end_learning_rate=config["last_lr"],
                                                                      power=0.2)
+    opimizer = tfa.optimizers.AdamW(learning_rate=config["initial_lr"], weight_decay=learning_rate_fn)
 
-    opts = tfa.optimizers.AdamW(learning_rate=config["initial_lr"], weight_decay=learning_rate_fn)
+    tf.keras.utils.get_custom_objects().update({"dice": dice_loss})
+    
+    callbacks = get_callbacks(config, model, dataset=valid_dataset)
+    model.compile(optimizer=opimizer, loss='dice', metrics=[dice_coefficient, ce_dice_loss, IoU])
 
-    # tf.keras.utils.get_custom_objects().update({"dice": dice_loss})
-    # model.compile(optimizer=opts, loss='dice', metrics=[dice_coefficient, ce_dice_loss, IoU])
+    # learning_rate_fn = tf.keras.optimizers.schedules.CosineDecayRestarts(initial_learning_rate=config["max_lr"],
+    #                                                                      first_decay_steps=train_steps_per_epoch * 100,
+    #                                                                      t_mul=2.0,
+    #                                                                      m_mul=1.0,
+    #                                                                      alpha=0.0)
+    
+    # opimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate_fn)
 
-    dice_loss = sm.losses.DiceLoss() 
-    focal_loss = sm.losses.CategoricalFocalLoss()
-    total_loss = dice_loss + (1 * focal_loss)
-    model.compile(optimizer=opts, loss=total_loss, metrics=["accuracy", sm.metrics.IOUScore(threshold=0.5), sm.metrics.FScore(threshold=0.5)])
+    # dice_loss = sm.losses.DiceLoss() 
+    # focal_loss = sm.losses.CategoricalFocalLoss()
+    # total_loss = dice_loss + (1 * focal_loss)
 
+    # callbacks = get_callbacks(config, model, dataset=valid_dataset)
+    # callbacks.pop()
+    # model.compile(optimizer=opimizer, loss=total_loss, metrics=["accuracy", sm.metrics.IOUScore(threshold=0.5), sm.metrics.FScore(threshold=0.5)])
+    
     history = model.fit(train_dataloader, 
                         epochs=config["epochs"],
                         verbose=1,
                         callbacks=callbacks,
-                        steps_per_epoch=len(train_dataset) // config["batch_size"],
+                        steps_per_epoch=train_steps_per_epoch,
                         validation_data=valid_dataloader,
-                        validation_steps=len(valid_dataset) // config["batch_size"])
+                        validation_steps=valid_steps_per_epoch)
     
     model.save(f"{save_path}/weights/final_model.h5")

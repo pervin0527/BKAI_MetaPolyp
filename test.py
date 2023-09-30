@@ -12,6 +12,7 @@ import tensorflow as tf
 from glob import glob
 from model.model import build_model
 from utils.utils import decode_mask
+from data.batch_preprocess import normalize
 
 gpus = tf.config.experimental.list_physical_devices('GPU')
 if len(gpus) > 1:
@@ -104,7 +105,7 @@ def test(model, test_files, save_dir, img_size):
         height, width = image.shape[:-1]
 
         x = cv2.resize(image, (img_size, img_size))
-        x = (x / 127.5) - 1
+        x = normalize(x)
         x = np.expand_dims(x, 0)
 
         y_pred = model.predict(x, verbose=0)[0]
@@ -123,11 +124,12 @@ if __name__ == "__main__":
 
     weight_dir = config["weight_dir"]
     save_dir = '/'.join(weight_dir.split('/')[:-2]) + "/test_result"
+    folder_name = save_dir.split('/')[-2]
     print(save_dir)
     if not os.path.isdir(save_dir):
         os.makedirs(save_dir)
 
-    model = build_model(img_size=config["img_size"], num_classes=3)
+    model = build_model(img_size=config["img_size"], num_classes=config["num_classes"])
     model.load_weights(weight_dir)
 
     data_dir = config["data_dir"]
@@ -142,4 +144,5 @@ if __name__ == "__main__":
     df['Id'] = result['ids']
     df['Expected'] = result['strings']
 
-    df.to_csv(r'output.csv', index=False)
+    df.to_csv(f'output_{folder_name}.csv', index=False)
+    print("Done")

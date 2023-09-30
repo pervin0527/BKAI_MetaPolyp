@@ -65,10 +65,10 @@ class BalancedBKAIDataset():
 
                 if self.split == "train" and self.augment:
                     prob = random.random()
-                    if prob <= 0.15:
+                    if prob <= 0.25:
                         transform_image, transform_mask = train_img_mask_transform(self.train_transform, image, mask)
 
-                    elif 0.15 < prob <= 0.3:
+                    elif 0.25 < prob <= 0.35:
                         i = random.randint(0, len(color_per_files)-1)
                         file_name = color_per_files[i]
                         piece_image = f"{self.image_dir}/{file_name}.jpeg"
@@ -78,7 +78,7 @@ class BalancedBKAIDataset():
                         t_piece_image, t_piece_mask = train_img_mask_transform(self.train_transform, piece_image, piece_mask)
                         transform_image, transform_mask = cutmix_augmentation(image, mask, t_piece_image, t_piece_mask)
 
-                    elif 0.3 < prob <= 0.6:
+                    elif 0.35 < prob <= 0.65:
                         piecies = [[image, mask]]
                         while len(piecies) < 4:
                             i = random.randint(0, len(color_per_files)-1)
@@ -92,7 +92,7 @@ class BalancedBKAIDataset():
 
                         transform_image, transform_mask = mosaic_augmentation(piecies, self.size)
 
-                    elif 0.6 < prob <= 1:
+                    elif 0.65 < prob <= 1:
                         # t_image, t_mask = train_img_mask_transform(self.train_transform, image, mask)
                         # transform_image, transform_mask = spatially_exclusive_pasting(t_image, t_mask, alpha=self.alpha, iterations=15)
                         transform_image, transform_mask = spatially_exclusive_pasting(image, mask, alpha=self.alpha)

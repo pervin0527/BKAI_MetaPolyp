@@ -1,10 +1,10 @@
 ## dirs
 data_dir: "/home/pervinco/Datasets/BKAI_IGH_NeoPolyp"
-weight_dir: ""
 save_dir: "./runs"
 train: "train"
 valid: "valid"
 test: "test"
+weight_dir: "/home/pervinco/BKAI_MetaPolyp/runs/2023-10-01_00-34-33/weights/final_model.h5"
 
 ## hyp-params
 num_classes: 3
@@ -12,12 +12,12 @@ epochs: 350
 img_size: 256
 batch_size: 16
 
-red_size: 3
-green_size: 9
+red_size: 4
+green_size: 8
 rng_size: 4
 
-initial_lr: 0.0001
-last_lr: 0.000001
+initial_lr: 0.0001 ## 1e-4
+last_lr: 0.000001 ## 1e-6
 decay_steps: 1000
 momentum: 0.9
 save_weights_only: True
@@ -25,11 +25,13 @@ save_weights_only: True
 ## lr scheduler
 max_lr: 0.0001
 min_lr: 0.000001
-patience: 10
+patience: 50
+factor: 0.2
 
 ## augmentation
 augment: True
-alpha: 0.8
+alpha: 0.7
 
-## pred samples
+## callbacks
 num_pred_samples: 5
+early_stopping_patience: 50

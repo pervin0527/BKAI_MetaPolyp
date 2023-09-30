@@ -1,6 +1,6 @@
 __pycache__
 runs
 training.csv
-output.csv
+output_*.csv
 notebook/images
 pretrained_model.h5
