@@ -1,11 +1,13 @@
 import os
 import warnings
 warnings.filterwarnings("ignore")
+os.environ['SM_FRAMEWORK'] = 'tf.keras'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 import yaml
 import tensorflow as tf
 import tensorflow_addons as tfa
+import segmentation_models as sm
 
 from datetime import datetime
 from model.model import build_model
@@ -13,7 +15,7 @@ from data.BKAIDataset import BKAIDataset
 from utils.utils import save_config_to_yaml
 from data.BalancedBKAIDataset import BalancedBKAIDataset
 from utils.callbacks import get_callbacks, SavePredictions
-from metrics.metrics import dice_loss, dice_coefficient, ce_dice_loss, IoU
+from metrics.metrics import dice_loss, dice_coefficient, ce_dice_loss, IoU, focal_loss
 
 gpus = tf.config.experimental.list_physical_devices('GPU')
 if len(gpus) > 1:
@@ -81,7 +83,6 @@ if __name__ == "__main__":
                               _min_lr=config["min_lr"],
                               _cos_anne_ep = 1000, 
                               save_weights_only=config["save_weights_only"])
-    callbacks.pop(-1)
     callbacks.append(pred_callback)
 
     learning_rate_fn = tf.keras.optimizers.schedules.PolynomialDecay(config["initial_lr"],
@@ -89,16 +90,15 @@ if __name__ == "__main__":
                                                                      config["last_lr"],
                                                                      power=0.2)
 
-    # learning_rate_fn = reduce_lr = tf.keras.optimizers.schedules.CosineDecayRestarts(initial_learning_rate=config["max_lr"],
-    #                                                                                  first_decay_steps=100 * (len(train_dataset) // config["batch_size"]),
-    #                                                                                  t_mul=1,
-    #                                                                                  m_mul=1,
-    #                                                                                  alpha=config["min_lr"])
-
     opts = tfa.optimizers.AdamW(learning_rate=config["initial_lr"], weight_decay=learning_rate_fn)
 
-    tf.keras.utils.get_custom_objects().update({"dice": dice_loss})
-    model.compile(optimizer=opts, loss='dice', metrics=[dice_coefficient, ce_dice_loss, IoU])
+    # tf.keras.utils.get_custom_objects().update({"dice": dice_loss})
+    # model.compile(optimizer=opts, loss='dice', metrics=[dice_coefficient, ce_dice_loss, IoU])
+
+    dice_loss = sm.losses.DiceLoss() 
+    focal_loss = sm.losses.CategoricalFocalLoss()
+    total_loss = dice_loss + (1 * focal_loss)
+    model.compile(optimizer=opts, loss=total_loss, metrics=["accuracy", sm.metrics.IOUScore(threshold=0.5), sm.metrics.FScore(threshold=0.5)])
 
     history = model.fit(train_dataloader, 
                         epochs=config["epochs"],

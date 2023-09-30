@@ -28,3 +28,15 @@ def IoU(y_true, y_pred, epsilon=1e-6):
     iou_score = (intersection + epsilon) / (union + epsilon)
 
     return iou_score
+
+
+def focal_loss(y_true, y_pred, alpha=0.25, gamma=2.0):
+    epsilon = tf.keras.backend.epsilon()
+    y_pred = tf.clip_by_value(y_pred, epsilon, 1. - epsilon)
+
+    p_t = tf.where(tf.equal(y_true, 1), y_pred, 1 - y_pred)
+    alpha_factor = tf.where(tf.equal(y_true, 1), alpha, 1 - alpha)
+
+    fl = - alpha_factor * tf.math.pow(1. - p_t, gamma) * tf.math.log(p_t)
+
+    return tf.reduce_mean(fl)
