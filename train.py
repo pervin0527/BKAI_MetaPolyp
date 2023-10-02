@@ -17,7 +17,7 @@ from data.BalancedBKAIDataset import BalancedBKAIDataset
 from model.model import build_model
 from utils.callbacks import get_callbacks
 from utils.utils import save_config_to_yaml
-# from metrics.metrics import dice_loss, dice_coefficient, ce_dice_loss, IoU
+from metrics.metrics import dice_loss, dice_coefficient, ce_dice_loss, IoU
 
 gpus = tf.config.experimental.list_physical_devices('GPU')
 if len(gpus) > 1:
@@ -41,7 +41,7 @@ if __name__ == "__main__":
     with open("config.yaml", "r") as f:
         config = yaml.safe_load(f)
 
-    model = build_model(img_size=config["img_size"], num_classes=3)
+    model = build_model(img_size=config["img_size"], num_classes=3, lambd=config["l2_lambd"])
     # model.summary()
     if config["weight_dir"] != "":
         model.load_weights(config["weight_dir"], by_name=True, skip_mismatch=True)
@@ -93,17 +93,14 @@ if __name__ == "__main__":
     # model.compile(optimizer=optimizer, loss='dice', metrics=[dice_coefficient, ce_dice_loss, IoU])
 
     cosine_decay = tf.keras.optimizers.schedules.CosineDecay(initial_learning_rate=config["initial_lr"],
-                                                             decay_steps=warmup_steps,
+                                                             decay_steps=total_steps,
                                                              alpha=0.01)
     optimizer = tf.keras.optimizers.Adam(learning_rate=cosine_decay)
-
-    dice_loss = sm.losses.DiceLoss(class_weights=np.array(config["class_weights"])) 
-    categorical_focal_loss = sm.losses.CategoricalFocalLoss(alpha=config["focal_alpha"], gamma=config["focal_gamma"])
-    total_loss = categorical_focal_loss + dice_loss
+    total_loss = sm.losses.DiceLoss(class_indexes=[1, 2]) + sm.losses.CategoricalFocalLoss(alpha=config["focal_alpha"], gamma=config["focal_gamma"], class_indexes=[1, 2])
 
     callbacks = get_callbacks(config, model, dataset=valid_dataset)
     callbacks.pop()
-    model.compile(optimizer=optimizer, loss=total_loss, metrics=["accuracy", sm.metrics.IOUScore(threshold=0.5), sm.metrics.FScore(threshold=0.5)])
+    model.compile(optimizer=optimizer, loss=total_loss, metrics=[sm.metrics.IOUScore(), sm.metrics.FScore()])
     
     history = model.fit(train_dataloader, 
                         epochs=config["epochs"],

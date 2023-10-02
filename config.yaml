@@ -1,22 +1,21 @@
 ## dirs
 data_dir: "/home/pervinco/Datasets/BKAI_IGH_NeoPolyp"
+# data_dir: "/home/pervinco/Datasets/BKAI_FAKE"
 save_dir: "./runs"
 train: "train"
 valid: "valid"
 test: "test"
-weight_dir: ""
-
-background_dir: "/home/pervinco/Datasets/Background"
-background_folders: ["0_normal", "1_ulcerative_colitis", "3_esophagitis"]
+weight_dir: "/home/pervinco/BKAI_MetaPolyp/runs/2023-10-03_01-02-05/weights/best_weight.h5"
 
 ## hyp-params
 num_classes: 3
-epochs: 350
+epochs: 400
 img_size: 256
 batch_size: 16
 class_weights: [0.00624089, 0.86719283, 0.12656628]
 focal_alpha: 0.25
-focal_gamma: 0.5
+focal_gamma: 5
+l2_lambd: 0.09
 
 red_size: 4
 green_size: 8
@@ -36,7 +35,7 @@ mixup_alpha: 0.7
 ## callbacks
 max_lr: 0.0001
 min_lr: 0.000001
-patience: 10
+patience: 50
 factor: 0.1
 num_pred_samples: 5
 early_stopping_patience: 50

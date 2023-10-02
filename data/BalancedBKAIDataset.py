@@ -29,37 +29,39 @@ class BalancedBKAIDataset():
         self.batch_per_color = {"red" : config["red_size"], "green" : config["green_size"], "rng" : config["rng_size"]}
         assert self.batch_size == sum(self.batch_per_color.values()), "The batch_size does not match the total sum of batch_per_color values."
 
-        self.train_transform = A.Compose([A.CLAHE(p=0.4),
-                                          A.RandomBrightnessContrast(p=0.4),
-                                          A.Rotate(limit=90, border_mode=0, p=0.6),
-                                          A.HorizontalFlip(p=0.5),
-                                          A.VerticalFlip(p=0.5),
-                                          A.RandomGamma (gamma_limit=(70, 130), eps=None, always_apply=False, p=0.2),
-                                          A.RGBShift(p=0.3, r_shift_limit=10, g_shift_limit=10, b_shift_limit=10),
-                                          A.OneOf([A.Blur(), A.GaussianBlur(), A.GlassBlur(), A.MotionBlur(), A.GaussNoise(), A.Sharpen(), A.MedianBlur(), A.MultiplicativeNoise()]),
-                                          A.CoarseDropout(p=0.2, max_height=35, max_width=35, fill_value=255, mask_fill_value=0),
-                                          A.ShiftScaleRotate(p=0.45, border_mode=cv2.BORDER_CONSTANT, shift_limit=0.15, scale_limit=0.15)])
+        self.train_transform = A.Compose([A.OneOf([A.CLAHE(p=0.3),
+                                                   A.Sharpen(p=0.3),
+                                                   A.RandomBrightnessContrast(p=0.3),], p=1), 
+                                    
+                                          A.OneOf([A.Rotate(limit=45, border_mode=0, p=0.25),
+                                                   A.HorizontalFlip(p=0.25),
+                                                   A.VerticalFlip(p=0.25),
+                                                   A.ShiftScaleRotate(shift_limit=0.2, scale_limit=0.15, rotate_limit=45, border_mode=0, p=0.25),], p=1),
 
-        crop_size = config["img_size"] - 76
-        self.letter_box_transform = A.Compose([
-            A.RandomResizedCrop(height=crop_size, width=crop_size, p=1),
-            A.PadIfNeeded(p=1.0, min_height=config["img_size"], min_width=config["img_size"], pad_height_divisor=None, pad_width_divisor=None, border_mode=0, value=(0, 0, 0), mask_value=None)])
 
-        self.piece_transform = A.Compose([
-            A.CLAHE(p=0.4),
-            A.RandomBrightnessContrast(p=0.4),
-            A.HorizontalFlip(p=0.5),
-            A.VerticalFlip(p=0.5)])
+                                          A.OneOf([A.ColorJitter(p=0.25),
+                                                   A.RandomGamma(gamma_limit=(70, 130), eps=None, always_apply=False, p=0.25),
+                                                   A.ChannelDropout(p=0.25),
+                                                   A.ChannelShuffle(p=0.25)], p=0.2), 
 
-        background_dir = config["background_dir"]
-        sets = ["train", "val", "test"]
-        targets = ["0_normal", "1_ulcerative_colitis", "3_esophagitis"]
 
-        self.total_bg_files = []
-        for ds in sets:
-            for target in targets:
-                files = sorted(glob(f"{background_dir}/{ds}/{target}/*"))
-                self.total_bg_files.extend(files)
+                                          A.OneOf([A.OpticalDistortion(border_mode=0, p=0.5),
+                                                   A.GridDistortion(border_mode=0, p=0.5)], p=0.3),
+
+                                    
+                                          A.OneOf([A.Blur(p=0.125), 
+                                                   A.GaussianBlur(p=0.125), 
+                                                   A.GlassBlur(p=0.125), 
+                                                   A.MotionBlur(p=0.125), 
+                                                   A.GaussNoise(p=0.125), 
+                                                   A.Sharpen(p=0.125), 
+                                                   A.MedianBlur(p=0.125), 
+                                                   A.MultiplicativeNoise(p=0.125)], p=0.4),
+                                    
+                                          A.OneOf([A.CoarseDropout(max_height=35, max_width=35, fill_value=0, mask_fill_value=0, p=0.5),
+                                                   A.Compose([A.CropNonEmptyMaskIfExists(height=self.size-56, width=self.size-56, p=1),
+                                                              A.PadIfNeeded(min_height=self.size, min_width=self.size, border_mode=0, p=1)], p=0.5)], p=0.4)
+                                        ])
 
     def __len__(self):
         return len(self.file_list)
@@ -79,13 +81,10 @@ class BalancedBKAIDataset():
 
                 if self.split == "train" and self.augment:
                     prob = random.random()
-                    if prob <= 0.2:
+                    if prob <= 0.3:
                         transform_image, transform_mask = train_img_mask_transform(self.train_transform, image, mask)
 
-                        if random.random() > 0.5:
-                            transform_image, transform_mask = train_img_mask_transform(self.letter_box_transform, transform_image, transform_mask)
-
-                    elif 0.2 < prob <= 0.5:
+                    elif 0.3 < prob <= 0.6:
                         piecies = [[image, mask]]
                         while len(piecies) < 4:
                             i = random.randint(0, len(color_per_files)-1)
@@ -101,16 +100,10 @@ class BalancedBKAIDataset():
 
                         transform_image, transform_mask = mosaic_augmentation(piecies, self.size)
 
-                    elif 0.5 < prob <= 8:
+                    elif 0.6 < prob <= 1:
                         t_image, t_mask = train_img_mask_transform(self.piece_transform, image, mask)
                         transform_image, transform_mask = spatially_exclusive_pasting(image=t_image, mask=t_mask, alpha=self.spatial_alpha)
                         # transform_image, transform_mask = spatially_exclusive_pasting(image, mask, alpha=self.alpha)
-
-                    elif 0.8 < prob < 1:
-                        bg_idx = random.randint(0, len(self.total_bg_files) - 1)
-                        bg_file = self.total_bg_files[bg_idx]
-                        bg_image = load_img_mask(image_path=bg_file, mask_path=None, size=self.size, only_img=True)
-                        transform_image, transform_mask = background_pasting(image, mask, bg_image, alpha=self.spatial_alpha)
                 
                     batch_image = normalize(transform_image)
                     batch_mask = encode_mask(transform_mask)
