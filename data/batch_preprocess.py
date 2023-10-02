@@ -5,6 +5,19 @@ import numpy as np
 
 from glob import glob
 
+def get_file_list(path):
+    totals = {}
+    color_files = sorted(glob(f"{path}/*.txt"))
+    for color_file in color_files:
+        name = color_file.split('/')[-1].split('.')[0]
+        with open(color_file, 'r') as f:
+            files = [x.strip() for x in f.readlines()]
+            
+        random.shuffle(files)
+        totals.update({name : files})
+
+    return totals
+
 def load_img_mask(image_path, mask_path, size=256, only_img=False):
     if only_img:
         image = cv2.imread(image_path)
@@ -18,7 +31,7 @@ def load_img_mask(image_path, mask_path, size=256, only_img=False):
         mask = cv2.imread(mask_path) 
         
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        mask = cv2.cvtColor(mask, cv2.COLOR_BGR2RGB)
+        # mask = cv2.cvtColor(mask, cv2.COLOR_BGR2RGB)
 
         image = cv2.resize(image, (size, size))
         mask = cv2.resize(mask, (size, size))
@@ -27,21 +40,49 @@ def load_img_mask(image_path, mask_path, size=256, only_img=False):
 
 
 def encode_mask(mask):
-    label_transformed = np.zeros(shape=mask.shape[:-1], dtype=np.uint8)
+    # label_transformed = np.zeros(shape=mask.shape[:-1], dtype=np.uint8)
 
-    green_mask = mask[:, :, 1] >= 50
-    label_transformed[green_mask] = 1
+    # green_mask = mask[:, :, 1] >= 50
+    # label_transformed[green_mask] = 1
 
-    red_mask = mask[:, :, 0] >= 50
-    label_transformed[red_mask] = 2
+    # red_mask = mask[:, :, 0] >= 50
+    # label_transformed[red_mask] = 2
 
-    return label_transformed
+    # return label_transformed
+    
+    hsv_mask = cv2.cvtColor(mask, cv2.COLOR_BGR2HSV)
+    
+    # lower boundary RED color range values; Hue (0 - 10)
+    lower1 = np.array([0, 100, 20])
+    upper1 = np.array([10, 255, 255])
+    
+    # upper boundary RED color range values; Hue (160 - 180)
+    lower2 = np.array([160,100,20])
+    upper2 = np.array([179,255,255])
+
+    lower_mask = cv2.inRange(hsv_mask, lower1, upper1)
+    upper_mask = cv2.inRange(hsv_mask, lower2, upper2)
+    red_mask = lower_mask + upper_mask;
+    red_mask[red_mask != 0] = 2
+
+    # boundary RED color range values; Hue (36 - 70)
+    green_mask = cv2.inRange(hsv_mask, (36, 25, 25), (70, 255,255))
+    green_mask[green_mask != 0] = 1
+    full_mask = cv2.bitwise_or(red_mask, green_mask)
+    full_mask = full_mask.astype(np.uint8)
+
+    return full_mask
 
 
 def normalize(image):
     image = np.array(image).astype(np.float32)
-    # image /= 255.0
-    image = (image / 127.5) - 1
+    # image = (image / 127.5) - 1
+
+    image /= 255.0
+    mean=(0.485, 0.456, 0.406)
+    std=(0.229, 0.224, 0.225)
+
+    image = (image - mean) / std
 
     return image
 
@@ -66,7 +107,9 @@ def mosaic_augmentation(piecies, size):
     h, w = size, size
     mosaic_img = np.zeros((h, w, 3), dtype=np.uint8)
     mosaic_mask = np.zeros((h, w, 3), dtype=np.uint8)
-    cx, cy = random.randint(w//4, 3*w//4), random.randint(h//4, 3*h//4)
+
+    # cx, cy = random.randint(w//4, 3*w//4), random.randint(h//4, 3*h//4)
+    cx, cy = w // 2, h // 2
     
     indices = [0, 1, 2, 3]
     random.shuffle(indices)
@@ -129,8 +172,8 @@ def spatially_exclusive_pasting(image, mask, alpha=0.7, iterations=10):
     he, we = hs.max(), ws.max()
     hs, ws = hs.min(), ws.min()
     
-    If = target_image[hs:he, ws:we]
     Lf_gray = L_gray[hs:he, ws:we]
+    If = target_image[hs:he, ws:we]
     Lf_color = target_mask[hs:he, ws:we]
     
     M = np.random.rand(*target_image.shape[:2])
@@ -162,15 +205,38 @@ def spatially_exclusive_pasting(image, mask, alpha=0.7, iterations=10):
     return target_image, target_mask
 
 
-def get_file_list(path):
-    totals = {}
-    color_files = sorted(glob(f"{path}/*.txt"))
-    for color_file in color_files:
-        name = color_file.split('/')[-1].split('.')[0]
-        with open(color_file, 'r') as f:
-            files = [x.strip() for x in f.readlines()]
-            
-        random.shuffle(files)
-        totals.update({name : files})
+def background_pasting(image, mask, background_image, alpha=0.7, iterations=10):
+    target_image, target_mask, target_bg_image = copy.deepcopy(image), copy.deepcopy(mask), copy.deepcopy(background_image)
+    L_gray = cv2.cvtColor(target_mask, cv2.COLOR_BGR2GRAY)
 
-    return totals
+    hs, ws = np.where(L_gray == 1)
+    if not hs.any() or not ws.any():
+        return target_bg_image, np.zeros_like(target_bg_image)
+
+    he, we = hs.max(), ws.max()
+    hs, ws = hs.min(), ws.min()
+    
+    Lf_gray = L_gray[hs:he, ws:we]
+    If = target_image[hs:he, ws:we]
+    Lf_color = target_mask[hs:he, ws:we]
+
+    height, width = he - hs, we - ws
+    bg_height, bg_width, _ = target_bg_image.shape
+    background_mask = np.zeros_like(target_bg_image)
+
+    for _ in range(iterations):
+        # Randomly select a position on the target_bg_image
+        px = np.random.randint(0, bg_height - height)
+        py = np.random.randint(0, bg_width - width)
+        
+        candidate_area = (slice(px, px + height), slice(py, py + width))
+        
+        # Check for overlap using the target_bg_image mask's grayscale version
+        if np.any(cv2.cvtColor(background_mask[candidate_area], cv2.COLOR_BGR2GRAY)):
+            continue
+
+        # Update the target_bg_image image and mask at the random position
+        target_bg_image[candidate_area] = alpha * target_bg_image[candidate_area] + (1 - alpha) * If
+        background_mask[candidate_area] = Lf_color
+
+    return target_bg_image, background_mask

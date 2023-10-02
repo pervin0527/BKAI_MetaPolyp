@@ -6,8 +6,21 @@ from keras.layers import Conv2D
 from keras_cv_attention_models import caformer
 from model.layers import decode, convformer, merge, conv_bn_act
 
+"""
+    CAFormer,
+    CAFormerS18,
+    CAFormerS36,
+    CAFormerM36,
+    CAFormerB36,
+    ConvFormerS18,
+    ConvFormerS36,
+    ConvFormerM36,
+    ConvFormerB36,
+"""
+
 def build_model(img_size=256, num_classes=1):
     backbone = caformer.CAFormerS18(input_shape=(img_size, img_size, 3), pretrained="imagenet", num_classes=0)
+    # backbone = caformer.CAFormerS36(input_shape=(img_size, img_size, 3), pretrained="imagenet", num_classes=0)
 
     layer_names = ['stack4_block3_mlp_Dense_1', 'stack3_block9_mlp_Dense_1', 'stack2_block3_mlp_Dense_1', 'stack1_block3_mlp_Dense_1']
     layers = [backbone.get_layer(x).output for x in layer_names]

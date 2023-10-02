@@ -4,13 +4,19 @@ save_dir: "./runs"
 train: "train"
 valid: "valid"
 test: "test"
-weight_dir: "/home/pervinco/BKAI_MetaPolyp/runs/2023-10-01_00-34-33/weights/final_model.h5"
+weight_dir: ""
+
+background_dir: "/home/pervinco/Datasets/Background"
+background_folders: ["0_normal", "1_ulcerative_colitis", "3_esophagitis"]
 
 ## hyp-params
 num_classes: 3
 epochs: 350
 img_size: 256
 batch_size: 16
+class_weights: [0.00624089, 0.86719283, 0.12656628]
+focal_alpha: 0.25
+focal_gamma: 0.5
 
 red_size: 4
 green_size: 8
@@ -22,16 +28,15 @@ decay_steps: 1000
 momentum: 0.9
 save_weights_only: True
 
-## lr scheduler
-max_lr: 0.0001
-min_lr: 0.000001
-patience: 50
-factor: 0.2
-
 ## augmentation
 augment: True
-alpha: 0.7
+spatial_alpha: 0.45 ## 0.45
+mixup_alpha: 0.7
 
 ## callbacks
+max_lr: 0.0001
+min_lr: 0.000001
+patience: 10
+factor: 0.1
 num_pred_samples: 5
 early_stopping_patience: 50

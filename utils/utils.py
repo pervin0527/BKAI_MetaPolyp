@@ -6,9 +6,15 @@ import matplotlib.pyplot as plt
 from data.batch_preprocess import *
 
 def decode_image(image):
-    image = np.transpose(image, (1, 2, 0))
-    image = image * 255
-    image = image.astype(np.uint8)
+    # image = (1 + image) * 127.5
+    # image = image * 255
+    # image = image.astype(np.uint8)
+
+    mean = (0.485, 0.456, 0.406)
+    std = (0.229, 0.224, 0.225)
+
+    image = (image * std) + mean
+    image = np.clip(image * 255.0, 0, 255).astype(np.uint8)
 
     return image
 

@@ -23,13 +23,14 @@ class SavePredictions(tf.keras.callbacks.Callback):
         random.shuffle(pred_files)
         
         sample_indices = random.sample(range(len(pred_files)), self.num_samples)
-        fig, axes = plt.subplots(self.num_samples, 2, figsize=(10, 25))
+        fig, axes = plt.subplots(self.num_samples, 2, figsize=(10, 5 * self.num_samples))
         for i, idx in enumerate(sample_indices):
             file = pred_files[idx]
             image_path = f"{self.valid_dataset.image_dir}/{file}.jpeg"
             mask_path = f"{self.valid_dataset.mask_dir}/{file}.jpeg"
             
             image, mask = load_img_mask(image_path, mask_path, size=self.img_size)
+            mask = cv2.cvtColor(mask, cv2.COLOR_BGR2RGB)
             height, width, channel = image.shape
             x = normalize(image)
             x = np.expand_dims(x, 0)
@@ -77,7 +78,7 @@ def get_callbacks(config, model, dataset):
                                                      mode="min",
                                                      verbose=1,)
 
-    checkpoint = tf.keras.callbacks.ModelCheckpoint(filepath=f"{save_path}/weights/ckpt",
+    checkpoint = tf.keras.callbacks.ModelCheckpoint(filepath=f"{save_path}/weights/best_weight.h5",
                                                     save_best_only=True,
                                                     save_weights_only=config["save_weights_only"],
                                                     monitor="val_loss",
@@ -90,5 +91,5 @@ def get_callbacks(config, model, dataset):
 
     lr_printer = PrintLearningRate()
 
-    callbacks = [pred_callback, lr_printer, checkpoint, csv_logger, reduce_lr, early_stopping]
+    callbacks = [pred_callback, lr_printer, checkpoint, csv_logger, early_stopping, reduce_lr]
     return callbacks
