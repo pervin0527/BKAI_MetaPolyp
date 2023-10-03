@@ -5,11 +5,11 @@ save_dir: "./runs"
 train: "train"
 valid: "valid"
 test: "test"
-weight_dir: "/home/pervinco/BKAI_MetaPolyp/runs/2023-10-03_01-02-05/weights/best_weight.h5"
+weight_dir: ""
 
 ## hyp-params
 num_classes: 3
-epochs: 400
+epochs: 500
 img_size: 256
 batch_size: 16
 class_weights: [0.00624089, 0.86719283, 0.12656628]

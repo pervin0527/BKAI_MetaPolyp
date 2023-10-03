@@ -76,13 +76,13 @@ def encode_mask(mask):
 
 def normalize(image):
     image = np.array(image).astype(np.float32)
+    image = image / 255.0
     # image = (image / 127.5) - 1
 
-    image /= 255.0
-    mean=(0.485, 0.456, 0.406)
-    std=(0.229, 0.224, 0.225)
-
-    image = (image - mean) / std
+    # image /= 255.0
+    # mean=(0.485, 0.456, 0.406)
+    # std=(0.229, 0.224, 0.225)
+    # image = (image - mean) / std
 
     return image
 

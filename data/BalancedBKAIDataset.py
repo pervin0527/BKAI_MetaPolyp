@@ -95,15 +95,15 @@ class BalancedBKAIDataset():
 
                             # piecies.append([piece_image, piece_mask])
 
-                            t_piece_image, t_piece_mask = train_img_mask_transform(self.piece_transform, piece_image, piece_mask)
+                            t_piece_image, t_piece_mask = train_img_mask_transform(self.train_transform, piece_image, piece_mask)
                             piecies.append([t_piece_image, t_piece_mask])
 
                         transform_image, transform_mask = mosaic_augmentation(piecies, self.size)
 
                     elif 0.6 < prob <= 1:
-                        t_image, t_mask = train_img_mask_transform(self.piece_transform, image, mask)
-                        transform_image, transform_mask = spatially_exclusive_pasting(image=t_image, mask=t_mask, alpha=self.spatial_alpha)
-                        # transform_image, transform_mask = spatially_exclusive_pasting(image, mask, alpha=self.alpha)
+                        # t_image, t_mask = train_img_mask_transform(self.train_transform, image, mask)
+                        # transform_image, transform_mask = spatially_exclusive_pasting(image=t_image, mask=t_mask, alpha=self.spatial_alpha)
+                        transform_image, transform_mask = spatially_exclusive_pasting(image, mask, alpha=self.spatial_alpha)
                 
                     batch_image = normalize(transform_image)
                     batch_mask = encode_mask(transform_mask)
