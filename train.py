@@ -48,8 +48,6 @@ if __name__ == "__main__":
             if 'stack' in layer.name:
                 layer.trainable = False
 
-    # train_dataset = BKAIDataset(config=config, split=config["train"])
-    # valid_dataset = BKAIDataset(config=config, split=config["valid"])
     train_dataset = BalancedBKAIDataset(config=config, split=config["train"])
     valid_dataset = BalancedBKAIDataset(config=config, split=config["valid"])
 
@@ -93,8 +91,14 @@ if __name__ == "__main__":
     callbacks = get_callbacks(config, model, dataset=valid_dataset)
     callbacks.pop()
 
-    cosine_decay = tf.keras.optimizers.schedules.CosineDecay(initial_learning_rate=config["initial_lr"], decay_steps=total_steps, alpha=0.01)
-    optimizer = tf.keras.optimizers.Adam(learning_rate=cosine_decay)
+    # cosine_decay = tf.keras.optimizers.schedules.CosineDecay(initial_learning_rate=config["initial_lr"], decay_steps=total_steps, alpha=0.01)
+    cosine_decay_restart = tf.keras.optimizers.schedules.CosineDecayRestarts(initial_learning_rate=config["initial_lr"],
+                                                                             first_decay_steps=400 * train_steps_per_epoch,
+                                                                             t_mul=1.0,
+                                                                             m_mul=1.0,
+                                                                             alpha=0.01)
+
+    optimizer = tf.keras.optimizers.Adam(learning_rate=cosine_decay_restart)
     # total_loss = sm.losses.DiceLoss(class_indexes=[1, 2]) + sm.losses.CategoricalFocalLoss(alpha=config["focal_alpha"], gamma=config["focal_gamma"], class_indexes=[1, 2])
     total_loss = sm.losses.JaccardLoss(class_indexes=[0, 1, 2]) + sm.losses.CategoricalFocalLoss(alpha=config["focal_alpha"], gamma=config["focal_gamma"], class_indexes=[0, 1, 2])
 
