@@ -76,13 +76,13 @@ def encode_mask(mask):
 
 def normalize(image):
     image = np.array(image).astype(np.float32)
-    image = image / 255.0
+    # image = image / 255.0
     # image = (image / 127.5) - 1
 
-    # image /= 255.0
-    # mean=(0.485, 0.456, 0.406)
-    # std=(0.229, 0.224, 0.225)
-    # image = (image - mean) / std
+    image /= 255.0
+    mean=(0.485, 0.456, 0.406)
+    std=(0.229, 0.224, 0.225)
+    image = (image - mean) / std
 
     return image
 
@@ -203,40 +203,3 @@ def spatially_exclusive_pasting(image, mask, alpha=0.7, iterations=10):
         M = cv2.filter2D(M, -1, kernel)
 
     return target_image, target_mask
-
-
-def background_pasting(image, mask, background_image, alpha=0.7, iterations=10):
-    target_image, target_mask, target_bg_image = copy.deepcopy(image), copy.deepcopy(mask), copy.deepcopy(background_image)
-    L_gray = cv2.cvtColor(target_mask, cv2.COLOR_BGR2GRAY)
-
-    hs, ws = np.where(L_gray == 1)
-    if not hs.any() or not ws.any():
-        return target_bg_image, np.zeros_like(target_bg_image)
-
-    he, we = hs.max(), ws.max()
-    hs, ws = hs.min(), ws.min()
-    
-    Lf_gray = L_gray[hs:he, ws:we]
-    If = target_image[hs:he, ws:we]
-    Lf_color = target_mask[hs:he, ws:we]
-
-    height, width = he - hs, we - ws
-    bg_height, bg_width, _ = target_bg_image.shape
-    background_mask = np.zeros_like(target_bg_image)
-
-    for _ in range(iterations):
-        # Randomly select a position on the target_bg_image
-        px = np.random.randint(0, bg_height - height)
-        py = np.random.randint(0, bg_width - width)
-        
-        candidate_area = (slice(px, px + height), slice(py, py + width))
-        
-        # Check for overlap using the target_bg_image mask's grayscale version
-        if np.any(cv2.cvtColor(background_mask[candidate_area], cv2.COLOR_BGR2GRAY)):
-            continue
-
-        # Update the target_bg_image image and mask at the random position
-        target_bg_image[candidate_area] = alpha * target_bg_image[candidate_area] + (1 - alpha) * If
-        background_mask[candidate_area] = Lf_color
-
-    return target_bg_image, background_mask

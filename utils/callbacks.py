@@ -91,5 +91,8 @@ def get_callbacks(config, model, dataset):
 
     lr_printer = PrintLearningRate()
 
-    callbacks = [pred_callback, lr_printer, checkpoint, csv_logger, early_stopping, reduce_lr]
+
+    tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=f'{save_path}/logs', write_graph=True, update_freq='epoch')
+
+    callbacks = [pred_callback, lr_printer, checkpoint, csv_logger, early_stopping, tensorboard_callback, reduce_lr]
     return callbacks
