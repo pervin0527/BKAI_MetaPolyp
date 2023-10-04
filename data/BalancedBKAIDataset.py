@@ -60,8 +60,23 @@ class BalancedBKAIDataset():
                                     
                                           A.OneOf([A.CoarseDropout(max_height=35, max_width=35, fill_value=0, mask_fill_value=0, p=0.5),
                                                    A.Compose([A.CropNonEmptyMaskIfExists(height=self.size-56, width=self.size-56, p=1),
-                                                              A.PadIfNeeded(min_height=self.size, min_width=self.size, border_mode=0, p=1)], p=0.5)], p=0.4)
+                                                              
+                                                              A.OneOf([A.PadIfNeeded(min_height=self.size, min_width=self.size, border_mode=0, p=0.5),
+                                                                       A.Resize(height=self.size, width=self.size, p=0.5)], p=1)
+                                                              ], p=0.5)
+                                                    ], p=0.4)
                                         ])
+
+        self.paste_transform = A.Compose([A.OneOf([A.CLAHE(p=0.3),
+                                                   A.Sharpen(p=0.3),
+                                                   A.RandomBrightnessContrast(p=0.3),], p=1), 
+                                    
+                                          A.OneOf([A.HorizontalFlip(p=0.25),
+                                                   A.VerticalFlip(p=0.25),], p=1),
+
+                                    
+                                          A.OneOf([A.Blur(p=0.5), 
+                                                   A.GaussianBlur(p=0.5)], p=0.3)])
 
     def __len__(self):
         return len(self.file_list)
@@ -103,7 +118,8 @@ class BalancedBKAIDataset():
                     elif 0.6 < prob <= 1:
                         # t_image, t_mask = train_img_mask_transform(self.train_transform, image, mask)
                         # transform_image, transform_mask = spatially_exclusive_pasting(image=t_image, mask=t_mask, alpha=self.spatial_alpha)
-                        transform_image, transform_mask = spatially_exclusive_pasting(image, mask, alpha=self.spatial_alpha)
+                        # transform_image, transform_mask = spatially_exclusive_pasting(image, mask, alpha=self.spatial_alpha)
+                        transform_image, transform_mask = spatially_exclusive_pasting(image, mask, alpha=0.45, iterations=10, transform=self.paste_transform)
                 
                     batch_image = normalize(transform_image)
                     batch_mask = encode_mask(transform_mask)

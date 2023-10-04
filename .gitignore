@@ -4,3 +4,5 @@ training.csv
 output_*.csv
 notebook/images
 pretrained_model.h5
+best/
+Medical_Image_Transformer.ipynb
