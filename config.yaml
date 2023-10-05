@@ -11,10 +11,9 @@ num_classes: 3
 epochs: 1200
 img_size: 256
 batch_size: 16
-class_weights: [0.00624089, 0.86719283, 0.12656628] ## [0.86719283, 0.12656628]
 focal_alpha: 0.25
-focal_gamma: 5.0
-l2_lambd: 0.9
+focal_gamma: 2.0
+l2_lambd: 0.09
 
 red_size: 4
 green_size: 8
@@ -35,6 +34,6 @@ mixup_alpha: 0.7
 max_lr: 0.0001
 min_lr: 0.000001
 patience: 50
-factor: 0.1
+factor: 0.2
 num_pred_samples: 5
-early_stopping_patience: 50
+early_stopping_patience: 80

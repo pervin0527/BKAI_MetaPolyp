@@ -161,85 +161,45 @@ def cutmix_augmentation(image1, mask1, image2, mask2):
     return i1, m1
 
 
-# def spatially_exclusive_pasting(image, mask, alpha=0.7, iterations=10):
-#     target_image, target_mask = copy.deepcopy(image), copy.deepcopy(mask)
-#     L_gray = cv2.cvtColor(target_mask, cv2.COLOR_BGR2GRAY)
-
-#     hs, ws = np.where(L_gray == 1)
-#     if not hs.any() or not ws.any():
-#         return target_mask
-
-#     he, we = hs.max(), ws.max()
-#     hs, ws = hs.min(), ws.min()
-    
-#     Lf_gray = L_gray[hs:he, ws:we]
-#     If = target_image[hs:he, ws:we]
-#     Lf_color = target_mask[hs:he, ws:we]
-    
-#     M = np.random.rand(*target_image.shape[:2])
-#     M[L_gray == 1] = float('inf')
-    
-#     height, width = he - hs, we - ws
-
-#     for _ in range(iterations):
-#         px, py = np.unravel_index(M.argmin(), M.shape)        
-#         candidate_area = (slice(px, px + height), slice(py, py + width))
-        
-#         if candidate_area[0].stop > target_image.shape[0] or candidate_area[1].stop > target_image.shape[1]:
-#             M[px, py] = float('inf')
-#             continue
-        
-#         if np.any(L_gray[candidate_area] & Lf_gray):
-#             M[candidate_area] = float('inf')
-#             continue
-        
-#         target_image[candidate_area] = alpha * target_image[candidate_area] + (1 - alpha) * If
-#         target_mask[candidate_area] = alpha * target_mask[candidate_area] + (1 - alpha) * Lf_color
-#         L_gray[candidate_area] = cv2.cvtColor(target_mask[candidate_area], cv2.COLOR_BGR2GRAY)
-        
-#         M[candidate_area] = float('inf')
-        
-#         kernel = np.ones((3, 3), np.float32) / 9
-#         M = cv2.filter2D(M, -1, kernel)
-
-#     return target_image, target_mask
-
-def spatially_exclusive_pasting(image, mask, alpha=0.7, iterations=10, transform=None):
+def spatially_exclusive_pasting(image, mask, alpha=0.7, iterations=10):
     target_image, target_mask = copy.deepcopy(image), copy.deepcopy(mask)
     L_gray = cv2.cvtColor(target_mask, cv2.COLOR_BGR2GRAY)
 
-    contours, _ = cv2.findContours(L_gray, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    hs, ws = np.where(L_gray == 1)
+    if not hs.any() or not ws.any():
+        return target_mask
+
+    he, we = hs.max(), ws.max()
+    hs, ws = hs.min(), ws.min()
     
-    for contour in contours:
-        x, y, w, h = cv2.boundingRect(contour)
+    Lf_gray = L_gray[hs:he, ws:we]
+    If = target_image[hs:he, ws:we]
+    Lf_color = target_mask[hs:he, ws:we]
+    
+    M = np.random.rand(*target_image.shape[:2])
+    M[L_gray == 1] = float('inf')
+    
+    height, width = he - hs, we - ws
+
+    for _ in range(iterations):
+        px, py = np.unravel_index(M.argmin(), M.shape)        
+        candidate_area = (slice(px, px + height), slice(py, py + width))
         
-        If = target_image[y:y+h, x:x+w]
-        Lf_color = target_mask[y:y+h, x:x+w]
-        Lf_gray = L_gray[y:y+h, x:x+w]
+        if candidate_area[0].stop > target_image.shape[0] or candidate_area[1].stop > target_image.shape[1]:
+            M[px, py] = float('inf')
+            continue
         
-        M = np.random.rand(*target_image.shape[:2])
-        M[L_gray == 1] = float('inf')
-        
-        for _ in range(iterations):
-            px, py = np.unravel_index(M.argmin(), M.shape)
-            candidate_area = (slice(px, px + h), slice(py, py + w))
-            
-            if candidate_area[0].stop > target_image.shape[0] or candidate_area[1].stop > target_image.shape[1]:
-                M[px, py] = float('inf')
-                continue
-            
-            if np.any(L_gray[candidate_area] & Lf_gray):
-                M[candidate_area] = float('inf')
-                continue
-            
-            crop_image, crop_mask = train_img_mask_transform(transform, If, Lf_color)
-            target_image[candidate_area] = alpha * target_image[candidate_area] + (1 - alpha) * crop_image
-            target_mask[candidate_area] = alpha * target_mask[candidate_area] + (1 - alpha) * crop_mask
-            L_gray[candidate_area] = cv2.cvtColor(target_mask[candidate_area], cv2.COLOR_BGR2GRAY)
-            
+        if np.any(L_gray[candidate_area] & Lf_gray):
             M[candidate_area] = float('inf')
-            
-            kernel = np.ones((3, 3), np.float32) / 9
-            M = cv2.filter2D(M, -1, kernel)
+            continue
+        
+        target_image[candidate_area] = alpha * target_image[candidate_area] + (1 - alpha) * If
+        target_mask[candidate_area] = alpha * target_mask[candidate_area] + (1 - alpha) * Lf_color
+        L_gray[candidate_area] = cv2.cvtColor(target_mask[candidate_area], cv2.COLOR_BGR2GRAY)
+        
+        M[candidate_area] = float('inf')
+        
+        kernel = np.ones((3, 3), np.float32) / 9
+        M = cv2.filter2D(M, -1, kernel)
 
     return target_image, target_mask
