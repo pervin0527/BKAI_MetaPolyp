@@ -39,17 +39,7 @@ def load_img_mask(image_path, mask_path, size=256, only_img=False):
         return image, mask
 
 
-def encode_mask(mask):
-    # label_transformed = np.zeros(shape=mask.shape[:-1], dtype=np.uint8)
-
-    # green_mask = mask[:, :, 1] >= 50
-    # label_transformed[green_mask] = 1
-
-    # red_mask = mask[:, :, 0] >= 50
-    # label_transformed[red_mask] = 2
-
-    # return label_transformed
-    
+def encode_mask(mask):  
     hsv_mask = cv2.cvtColor(mask, cv2.COLOR_BGR2HSV)
     
     # lower boundary RED color range values; Hue (0 - 10)

@@ -12,18 +12,17 @@ epochs: 1200
 img_size: 256
 batch_size: 16
 focal_alpha: 0.25
-focal_gamma: 2.0
-l2_lambd: 0.09
+focal_gamma: 5.0
+l2_lambd: 0.9
 
 red_size: 4
 green_size: 8
 rng_size: 4
 
+## LR Scheduler
 initial_lr: 0.0001 ## 1e-4
 last_lr: 0.000001 ## 1e-6
 decay_steps: 1000
-momentum: 0.9
-save_weights_only: True
 
 ## augmentation
 augment: True
@@ -37,3 +36,4 @@ patience: 50
 factor: 0.2
 num_pred_samples: 5
 early_stopping_patience: 80
+save_weights_only: True

@@ -88,24 +88,21 @@ if __name__ == "__main__":
     # optimizer = tfa.optimizers.AdamW(learning_rate=config["initial_lr"], weight_decay=learning_rate_fn)
     # tf.keras.utils.get_custom_objects().update({"dice": dice_loss})
     # model.compile(optimizer=optimizer, loss='dice', metrics=[dice_coefficient, ce_dice_loss, IoU])
-    # # tf.keras.utils.get_custom_objects().update({"combine": combined_loss})
-    # # model.compile(optimizer=optimizer, loss='combine', metrics=[dice_coefficient, IoU])
-
 
     callbacks.pop()
-    cosine_decay = tf.keras.optimizers.schedules.CosineDecay(initial_learning_rate=config["initial_lr"], decay_steps=total_steps, alpha=0.01)
-    # cosine_decay = tf.keras.optimizers.schedules.CosineDecayRestarts(initial_learning_rate=config["initial_lr"],
-    #                                                                  first_decay_steps=400 * train_steps_per_epoch,
-    #                                                                  t_mul=1.0,
-    #                                                                  m_mul=1.0,
-    #                                                                  alpha=0.01)
+    # cosine_decay = tf.keras.optimizers.schedules.CosineDecay(initial_learning_rate=config["initial_lr"], decay_steps=total_steps, alpha=0.01)
+    cosine_decay_restart = tf.keras.optimizers.schedules.CosineDecayRestarts(initial_learning_rate=config["initial_lr"],
+                                                                             first_decay_steps=400 * train_steps_per_epoch,
+                                                                             t_mul=1.0,
+                                                                             m_mul=1.0,
+                                                                             alpha=0.01)
 
-    dice_loss = sm.losses.DiceLoss() 
-    focal_loss = sm.losses.CategoricalFocalLoss(alpha=config["focal_alpha"], gamma=config["focal_gamma"])
-    total_loss = dice_loss + (1 * focal_loss)
+    optimizer = tf.keras.optimizers.Adam(learning_rate=cosine_decay_restart)
+    # total_loss = sm.losses.DiceLoss(class_indexes=[1, 2]) + sm.losses.CategoricalFocalLoss(alpha=config["focal_alpha"], gamma=config["focal_gamma"], class_indexes=[1, 2])
+    total_loss = sm.losses.JaccardLoss(class_indexes=[0, 1, 2]) + sm.losses.CategoricalFocalLoss(alpha=config["focal_alpha"], gamma=config["focal_gamma"], class_indexes=[0, 1, 2])
 
-    optimizer = tf.keras.optimizers.Adam(learning_rate=cosine_decay)
-    model.compile(optimizer=optimizer, loss=total_loss, metrics=[sm.metrics.IOUScore(threshold=0.5), sm.metrics.FScore(threshold=0.5)])
+    # model.compile(optimizer=optimizer, loss=total_loss, metrics=[sm.metrics.IOUScore(class_indexes=[1, 2]), sm.metrics.FScore(class_indexes=[1, 2])])
+    model.compile(optimizer=optimizer, loss=total_loss, metrics=[sm.metrics.IOUScore(class_indexes=[0, 1, 2]), sm.metrics.FScore(class_indexes=[0, 1, 2])])
     
     history = model.fit(train_dataloader, 
                         epochs=config["epochs"],
